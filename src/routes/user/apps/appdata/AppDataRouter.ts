@@ -3,6 +3,7 @@ import BaseApi = require('../../../../api/BaseApi')
 import ApiStatusCodes = require('../../../../api/ApiStatusCodes')
 import multer = require('multer')
 import InjectionExtractor = require('../../../../injection/InjectionExtractor')
+import Logger = require('../../../../utils/Logger')
 
 const TEMP_UPLOAD = 'temp_upload/'
 const router = express.Router()
@@ -33,24 +34,30 @@ router.get('/:appName/logs', function(req, res, next) {
         .catch(ApiStatusCodes.createCatcher(res))
 })
 
-router.get('/:appName/', function(req, res, next) {
+router.get('/:appName/', async function(req, res, next) {
     let appName = req.params.appName
     const serviceManager = InjectionExtractor.extractUserFromInjected(res).user
         .serviceManager
 
-    return Promise.resolve()
-        .then(function() {
-            return serviceManager.getBuildStatus(appName)
-        })
-        .then(function(data) {
-            let baseApi = new BaseApi(
-                ApiStatusCodes.STATUS_OK,
-                'App build status retrieved'
-            )
-            baseApi.data = data
-            res.send(baseApi)
-        })
-        .catch(ApiStatusCodes.createCatcher(res))
+    try {
+        const [containers, data] = await Promise.all([
+            serviceManager.getContainers(appName),
+            serviceManager.getBuildStatus(appName)
+        ])
+
+        let baseApi = new BaseApi(
+            ApiStatusCodes.STATUS_OK,
+            'App build status retrieved'
+        )
+
+        baseApi.data = {
+            ...data,
+            containers,
+        }
+        res.send(baseApi)
+    } catch(err) {
+        ApiStatusCodes.createCatcher(res)(err)
+    }
 })
 
 router.post('/:appName/', function(req, res, next) {

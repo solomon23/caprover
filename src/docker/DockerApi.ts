@@ -70,6 +70,10 @@ class DockerApi {
         })
     }
 
+    async getContainers() {
+        return await this.dockerode.listContainers()        
+    }
+
     getNodeIdByServiceName(
         serviceName: string,
         retryCount: number

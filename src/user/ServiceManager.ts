@@ -791,6 +791,19 @@ class ServiceManager {
         return undefined
     }
 
+    async getContainers(appName: string) {
+        const allContainers = await this.dockerApi.getContainers()
+        return allContainers
+            .filter(a => a.Names.some(n => n.startsWith(`/srv-captain--${appName}.`)))
+            .map(c => ({
+                name: c.Names[0],
+                image: c.Image,
+                state: c.State,
+                status: c.Status,
+                created: c.Created,
+            }))
+    }
+
     getBuildStatus(appName: string) {
         const self = this
 
